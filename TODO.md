@@ -1,5 +1,5 @@
-# TODO: Make AI Response Appear on Page
-
-- [x] Modify handleSendClick in src/components/Main/Main.jsx to capture and set AI response
-- [x] Add JSX to conditionally render AI response (resultData) when showResult is true
-- [x] Handle loading state for better UX
+- [x] Update Sidebar.css: Add white-space: nowrap; overflow: hidden; text-overflow: ellipsis; to .recent-entry p
+- [x] Update Sidebar.jsx: Truncate prompt to 12 characters with ...
+- [x] Update Context.jsx: Implement newChat function to clear input and results
+- [x] Update Main.jsx: Only add to conversations on first send in chat
+- [ ] Test the app: Run dev server, send multiple prompts, check sidebar shows only first prompt

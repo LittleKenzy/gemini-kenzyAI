@@ -1,29 +1,66 @@
-import { assets } from '../../assets/assets'
-import './Main.css'
-import { useContext, useState } from 'react'
-import { runGemini } from '../../config/gemini'
-import { Context } from '../../context/Context'
+import { assets } from '../../assets/assets';
+import './Main.css';
+import { useContext } from 'react';
+import { runGemini } from '../../config/gemini';
+import { Context } from '../../context/Context';
 
 const Main = () => {
-    const {showResult, setShowResult, loading, setLoading, resultData, setResultData} = useContext(Context);
-
-    const [input, setInput] = useState('')
-
-    const handleInputChange = (e) => {
-        setInput(e.target.value)
-    }
+    const {
+        showResult,
+        setShowResult,
+        loading,
+        setLoading,
+        displayedResultData,
+        setDisplayedResultData,
+        setConversations,
+        currentMessages,
+        setCurrentMessages,
+        input,
+        setInput,
+        isNewChat,
+        setIsNewChat
+    } = useContext(Context);
 
     const handleSendClick = async () => {
-        if (!input.trim()) return
-        setLoading(true)
-        const response = await runGemini(input)
+        if (!input.trim()) return;
+
+        setCurrentMessages(prev => [...prev, {type: 'user', text: input}, {type: 'ai', text: ''}]);
+        setShowResult(true);
+        setLoading(true);
+
+        const response = await runGemini(input);
+
         if (response) {
-            setResultData(response)
-            setShowResult(true)
+            setCurrentMessages(prev => prev.map((msg, i) => i === prev.length - 1 ? { ...msg, text: response } : msg));
+            setLoading(false);
+            animateTyping(response);
+
+            if (isNewChat) {
+                // simpan history max 10
+                setConversations(prev => [
+                    { messages: [...currentMessages, {type: 'ai', text: response}] },
+                    ...prev.slice(0, 9)
+                ]);
+                setIsNewChat(false);
+            }
+        } else {
+            setLoading(false);
         }
-        setLoading(false)
-        setInput('')
-    }
+
+        setInput('');
+    };
+
+    const animateTyping = (text) => {
+        setDisplayedResultData('');
+        const words = text.split(' ');
+        const delay = 5;
+        words.forEach((word, index) => {
+            setTimeout(() => {
+                setDisplayedResultData(prev => prev + word + ' ');
+            }, index * delay);
+        });
+        setTimeout(() => setLoading(false), words.length * delay + 500);
+    };
 
     return (
         <div className='main'>
@@ -59,22 +96,27 @@ const Main = () => {
                     </>
                 ) : (
                     <div className="result">
-                        <div className="result-title">
-                            <img src={assets.user_icon} alt="" />
-                            <p>{input}</p>
-                        </div>
-                        <div className="result-data">
-                            <img src={assets.gemini_icon} alt="" />
-                            {loading ? (
-                                <div className="loader">
-                                    <hr />
-                                    <hr />
-                                    <hr />
+                        {currentMessages.map((message, index) => (
+                            message.type === 'user' ? (
+                                <div key={index} className="result-title">
+                                    <img src={assets.user_icon} alt="" />
+                                    <p>{message.text}</p>
                                 </div>
                             ) : (
-                                <p dangerouslySetInnerHTML={{__html: resultData}}></p>
-                            )}
-                        </div>
+                                <div key={index} className="result-data">
+                                    <img src={assets.gemini_icon} alt="" />
+                                    {loading && index === currentMessages.length - 1 ? (
+                                        <div className="loader">
+                                            <hr />
+                                            <hr />
+                                            <hr />
+                                        </div>
+                                    ) : (
+                                        <p dangerouslySetInnerHTML={{ __html: index === currentMessages.length - 1 ? displayedResultData : message.text }}></p>
+                                    )}
+                                </div>
+                            )
+                        ))}
                     </div>
                 )}
 
@@ -82,16 +124,16 @@ const Main = () => {
                     <div className="search-box">
                         <input
                             type="text"
-                            name=""
-                            id=""
                             placeholder='Enter your prompt'
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && !loading && handleSendClick()}
+                            disabled={loading}
                         />
-                        <div onClick={handleSendClick} style={{ cursor: 'pointer' }}>
+                        <div onClick={() => !loading && handleSendClick()} style={{ cursor: loading ? 'not-allowed' : 'pointer' }}>
                             <img src={assets.gallery_icon} alt="" />
                             <img src={assets.mic_icon} alt="" />
-                            <img src={assets.send_icon} alt="" onClick={handleSendClick}/>
+                            {input ? <img src={assets.send_icon} alt="" /> : null}
                         </div>
                     </div>
                     <p className="bottom-info">
@@ -100,7 +142,7 @@ const Main = () => {
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default Main
+export default Main;

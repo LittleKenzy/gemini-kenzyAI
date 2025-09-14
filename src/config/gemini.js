@@ -16,7 +16,14 @@ export async function runGemini(prompt) {
             ],
         });
 
-        const responseText = response.candidates[0].content.parts[0].text;
+        let responseText = response.candidates[0].content.parts[0].text;
+
+        // Replace **text** with <strong>text</strong> for bold
+        responseText = responseText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // Remove remaining *
+        responseText = responseText.replace(/\*/g, '');
+
         return responseText;
     } catch (error) {
         console.error('Error generating content:', error);
